@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: scatela-postgres
+
+    environment:
+      POSTGRES_DB: scatela_db
+      POSTGRES_USER: scatela_user
+      POSTGRES_PASSWORD: my_scat4]
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
