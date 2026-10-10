@@ -1,4 +1,5 @@
 services:
+  # Database 
   postgres:
     image: postgres:17
     container_name: scatela-postgres
@@ -13,6 +14,24 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+  
+
+
+  #App service
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    
+    ports:
+      - "5001:5001" # "Host port to access": "Docker listening"
+    
+    depends_on:
+      - postgres
+
+
+
 
 volumes:
   postgres_data:
