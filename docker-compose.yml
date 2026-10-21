@@ -21,11 +21,15 @@ services:
   #App service
   api:
     build: 
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     
     ports:
       - "5001:5001" # "Host port to access": "Docker listening"
+
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
     
     depends_on:
       - postgres

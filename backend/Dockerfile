@@ -1,9 +1,15 @@
-FROM python:3.13-slim
+#Sets the python image
+FROM python:3.13-slim  
 
-WORKDIR /backend
 
-COPY requirements.txt .
+WORKDIR /app
+
+#Copy and install dependencies
+COPY backend/requirements.txt .
 RUN pip install -r requirements.txt
 
+
 COPY . .
-CMD ["python", "app.py"]
+
+#starts the application
+CMD ["python", "-m", "backend.app"]
