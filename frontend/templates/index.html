@@ -1,0 +1,85 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scatela Location Test</title>
+</head>
+<body>
+    <h1>Scatela Location Test</h1>
+
+    <button onclick="getLocation()">
+        Get My Location
+    </button>
+
+    <p id="result">Location not retrieved yet.</p>
+
+    <script>
+        async function getLocation() {
+            const result = document.getElementById("result");
+
+            // Check browser geolocation support
+            if (!navigator.geolocation) {
+                result.textContent =
+                    "Geolocation is not supported by this browser.";
+                return;
+            }
+
+            result.textContent = "Retrieving location...";
+
+            // Retrieve the device's location
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    result.textContent =
+                        `Location retrieved: ${latitude}, ${longitude}. Sending to server...`;
+
+                    try {
+                        // Send coordinates to the Flask backend
+                        const response = await fetch(
+                            "http://localhost:5001/api/location",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    latitude: latitude,
+                                    longitude: longitude
+                                })
+                            }
+                        );
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(
+                                data.error || "Server request failed."
+                            );
+                        }
+
+                        // Display the server's response
+                        result.textContent =
+                            `Server received location:\n` +
+                            `Latitude: ${data.latitude}\n` +
+                            `Longitude: ${data.longitude}`;
+
+                    } catch (error) {
+                        result.textContent =
+                            `Failed to send location: ${error.message}`;
+                    }
+                },
+
+                (error) => {
+                    result.textContent =
+                        `Unable to retrieve location: ${error.message}`;
+                }
+            );
+        }
+    </script>
+</body>
+</html>
+```
