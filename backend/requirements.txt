@@ -2,3 +2,5 @@ dotenv
 flask
 flask_cors
 sqlalchemy
+Flask-SQLAlchemy
+psycopg2-binary

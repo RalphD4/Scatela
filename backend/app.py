@@ -7,10 +7,12 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-#blue prints
+from backend.database import db, DATABASE_URL
+
+#blue prints 
 from backend.routes.api.location import location_api
 
-#####
+######
 
 
 #pre-startup configurations
@@ -22,9 +24,19 @@ app = Flask(
        
 CORS(app)
 
+#link flask to the database
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+db.init_app(app)
+
+with app.app_context():
+    try:
+        with db.engine.connect() as connection:
+            print("connected to database")
+    except Exception as e:
+        print(f"connection failed: {e}")
+
 
 #blue-print registrations
-
 app.register_blueprint(location_api)
 
 
