@@ -17,8 +17,7 @@ DATABASE_URL = (
     f"{os.getenv('POSTGRES_DB')}"
 )
 
-#engine
-#engine = create_engine(DATABASE_URL)
+
 
 #db instance
 db = SQLAlchemy()

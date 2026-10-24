@@ -28,6 +28,7 @@ CORS(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 db.init_app(app)
 
+#database connection test
 with app.app_context():
     try:
         with db.engine.connect() as connection:

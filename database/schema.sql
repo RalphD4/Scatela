@@ -1,6 +1,6 @@
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(20) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     phone_number TEXT NOT NULL,
@@ -9,14 +9,14 @@ CREATE TABLE users (
 
 CREATE TABLE guardian (
     user_id UUID PRIMARY KEY REFERENCES users(user_id),
-    longitude DOUBLE PRECISION,
-    latitude DOUBLE PRECISION
+    longitude DOUBLE PRECISION NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
 );
 
 CREATE TABLE child (
     user_id UUID PRIMARY KEY REFERENCES users(user_id),
-    longitude DOUBLE PRECISION,
-    latitude DOUBLE PRECISION
+    longitude DOUBLE PRECISION NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL
 );
 
 CREATE TABLE bases (
@@ -34,10 +34,15 @@ CREATE TABLE bases (
 
 CREATE TABLE emergency_contact (
     contact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    child_id UUID NOT NULL REFERENCES child(user_id),
-    contact_name VARCHAR(100) NOT NULL,
+    contact_name VARCHAR(20) NOT NULL,
     phone_number TEXT NOT NULL
 );
+
+CREATE TABLE child_emergency_contact (
+    child_id UUID NOT NULL REFERENCES child(user_id),
+    contact_id UUID NOT NULL REFERENCES emergency_contact(contact_id),
+    PRIMARY KEY (child_id, contact_id)
+)
 
 
 CREATE TABLE child_log (
@@ -48,7 +53,7 @@ CREATE TABLE child_log (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE parent_child (
+CREATE TABLE guardian_child (
     guardian_id UUID NOT NULL REFERENCES guardian(user_id),
     child_id UUID NOT NULL REFERENCES child(user_id),
 
