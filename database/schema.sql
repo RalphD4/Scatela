@@ -10,7 +10,7 @@ CREATE TABLE users (
 CREATE TABLE guardian (
     user_id UUID PRIMARY KEY REFERENCES users(user_id),
     longitude DOUBLE PRECISION NOT NULL,
-    latitude DOUBLE PRECISION NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL
 );
 
 CREATE TABLE child (
