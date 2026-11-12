@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.child.username }} &mdash; Child Details &mdash; Scatela{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ detail.child.username }}</h1>
+        <p class="subtitle">{{ detail.child.email }} &middot; {{ detail.child.phone_number }}</p>
+    </div>
+    <div class="actions-row">
+        <a href="{{ url_for('guardian_web.children') }}" class="btn btn-secondary">All Children</a>
+        <a href="{{ url_for('guardian_web.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h2>Current Monitoring Summary</h2>
+        <p>
+            Status:
+            <span class="badge badge-{{ detail.child.monitoring_status }}">{{ detail.child.status_label }}</span>
+        </p>
+        <p>
+            Latest Coordinates:
+            <span class="mono">
+                {% if detail.child.latitude is not none and detail.child.longitude is not none %}
+                    {{ "%.5f"|format(detail.child.latitude) }}, {{ "%.5f"|format(detail.child.longitude) }}
+                {% else %}
+                    Not reported
+                {% endif %}
+            </span>
+        </p>
+        <p>Last Updated: {{ detail.child.location_updated_at or "Never" }}</p>
+
+        <h3>Distance to Bases</h3>
+        {% if detail.child.per_base %}
+            <ul>
+                {% for b in detail.child.per_base %}
+                    <li>
+                        <strong>{{ b.base_name }}</strong>: {{ "%.0f"|format(b.distance_meters) }}m
+                        (Warn: {{ b.warning_radius }}m, Danger: {{ b.danger_radius }}m)
+                        <span class="badge badge-{{ b.status }}">{{ b.status }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted">No fresh base evaluations available.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Location &amp; Trail Map</h2>
+        <div id="child-detail-map" class="map-container"></div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Location History (child_log)</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in detail.logs %}
+                <tr>
+                    <td>{{ log.created_at }}</td>
+                    <td class="mono">{{ "%.6f"|format(log.latitude) if log.latitude is not none else "—" }}</td>
+                    <td class="mono">{{ "%.6f"|format(log.longitude) if log.longitude is not none else "—" }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="muted">No location history entries recorded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script id="child-detail-payload" type="application/json">{{ detail|tojson }}</script>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const payload = JSON.parse(document.getElementById("child-detail-payload").textContent || "{}");
+    const child = payload.child || {};
+    const bases = payload.bases || [];
+    const logs = payload.logs || [];
+
+    const centerLat = child.latitude ?? (bases[0] && bases[0].latitude) ?? 37.3382;
+    const centerLon = child.longitude ?? (bases[0] && bases[0].longitude) ?? -121.8863;
+
+    const map = L.map("child-detail-map").setView([centerLat, centerLon], 13);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    const bounds = [];
+    bases.forEach((b) => {
+        const pos = [b.latitude, b.longitude];
+        bounds.push(pos);
+        L.circle(pos, { radius: b.danger_radius, color: "#dc2626", fillOpacity: 0.08, weight: 1.5 }).addTo(map);
+        L.circle(pos, { radius: b.warning_radius, color: "#d97706", fillOpacity: 0.12, weight: 1.5 }).addTo(map);
+        L.marker(pos).bindPopup(`Base: ${b.base_name}`).addTo(map);
+    });
+
+    const trailPoints = logs
+        .filter((l) => l.latitude != null && l.longitude != null)
+        .map((l) => [l.latitude, l.longitude]);
+    if (trailPoints.length > 1) {
+        L.polyline(trailPoints, { color: "#2563eb", weight: 3, opacity: 0.7 }).addTo(map);
+    }
+
+    if (child.latitude != null && child.longitude != null) {
+        const childPos = [child.latitude, child.longitude];
+        bounds.push(childPos);
+        L.circleMarker(childPos, {
+            radius: 9,
+            color: "#ffffff",
+            fillColor: "#1d4ed8",
+            fillOpacity: 1,
+            weight: 2
+        }).bindPopup(`${child.username} (Latest)`).addTo(map);
+    }
+
+    if (bounds.length > 1) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+    }
+});
+</script>
+{% endblock %}

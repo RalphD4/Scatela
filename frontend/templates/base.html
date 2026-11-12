@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}Scatela{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('auth_web.home') }}">Scatela <span>Monitor</span></a>
+
+        <nav class="nav-links">
+            {% if current_user and current_role == 'guardian' %}
+                <a href="{{ url_for('guardian_web.dashboard') }}" class="{% if request.endpoint == 'guardian_web.dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('guardian_web.add_child') }}" class="{% if request.endpoint == 'guardian_web.add_child' %}active{% endif %}">Add Child</a>
+                <a href="{{ url_for('guardian_web.add_base') }}" class="{% if request.endpoint == 'guardian_web.add_base' %}active{% endif %}">Add Base Location</a>
+                <a href="{{ url_for('guardian_web.children') }}" class="{% if request.endpoint == 'guardian_web.children' %}active{% endif %}">View Children</a>
+                <a href="{{ url_for('guardian_web.bases') }}" class="{% if request.endpoint == 'guardian_web.bases' %}active{% endif %}">View Base Locations</a>
+            {% elif current_user and current_role == 'child' %}
+                <a href="{{ url_for('child_web.tracker') }}" class="active">Location Tracker</a>
+            {% else %}
+                <a href="{{ url_for('auth_web.login') }}" class="{% if request.endpoint == 'auth_web.login' %}active{% endif %}">Login</a>
+                <a href="{{ url_for('auth_web.register') }}" class="{% if request.endpoint == 'auth_web.register' %}active{% endif %}">Guardian Sign Up</a>
+            {% endif %}
+        </nav>
+
+        {% if current_user %}
+        <div class="nav-user">
+            <span>{{ current_user.username }}</span>
+            <span class="role-pill">{{ current_role }}</span>
+            <form id="logout-form" action="{{ url_for('auth_web.logout') }}" method="POST" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-secondary btn-sm">Logout</button>
+            </form>
+        </div>
+        {% endif %}
+    </header>
+
+    {% if current_user %}
+    <div id="tracking-bar" class="tracking-bar">
+        <div>
+            <strong id="tracking-status-text">Initializing automatic location tracking...</strong>
+            <button id="retry-location-btn" type="button" class="btn btn-secondary btn-sm" hidden>Retry Permission</button>
+        </div>
+        <div id="tracking-meta-text" class="mono muted">Waiting for first GPS fix...</div>
+    </div>
+    {% endif %}
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-list">
+                    {% for category, message in messages %}
+                        <div class="alert-banner {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if error %}
+            <div class="alert-banner error" style="margin-bottom: 1rem;">{{ error }}</div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if current_user %}
+    <script src="{{ url_for('static', filename='js/location_tracker.js') }}"></script>
+    {% endif %}
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Base Locations &mdash; Scatela{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Base Locations</h1>
+        <p class="subtitle">All of your configured safety bases automatically apply to every child linked to you.</p>
+    </div>
+    <div class="actions-row">
+        <a href="{{ url_for('guardian_web.add_base') }}" class="btn">+ Add Base Location</a>
+        <a href="{{ url_for('guardian_web.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Base Overview Map</h2>
+    <div id="bases-overview-map" class="map-container"></div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Base Name</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Warning Radius</th>
+                    <th>Danger Radius</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for base in bases %}
+                <tr>
+                    <td><strong>{{ base.base_name }}</strong></td>
+                    <td class="mono">{{ "%.6f"|format(base.latitude) }}</td>
+                    <td class="mono">{{ "%.6f"|format(base.longitude) }}</td>
+                    <td>{{ base.warning_radius }} m</td>
+                    <td>{{ base.danger_radius }} m</td>
+                    <td>
+                        <div class="actions-row">
+                            <a href="{{ url_for('guardian_web.edit_base', base_id=base.base_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                            <form method="POST" action="{{ url_for('guardian_web.delete_base_route', base_id=base.base_id) }}" class="inline-form" onsubmit="return confirm('Delete base location {{ base.base_name }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No base locations added yet. <a href="{{ url_for('guardian_web.add_base') }}">Add a base location</a>.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script id="bases-payload" type="application/json">{{ {"bases": bases, "guardian": guardian}|tojson }}</script>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const payload = JSON.parse(document.getElementById("bases-payload").textContent || "{}");
+    const bases = payload.bases || [];
+    const guardian = payload.guardian || {};
+
+    const startLat = (bases[0] && bases[0].latitude) ?? guardian.latitude ?? 37.3382;
+    const startLon = (bases[0] && bases[0].longitude) ?? guardian.longitude ?? -121.8863;
+
+    const map = L.map("bases-overview-map").setView([startLat, startLon], 13);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    const bounds = [];
+    bases.forEach((b) => {
+        const pos = [b.latitude, b.longitude];
+        bounds.push(pos);
+        L.circle(pos, { radius: b.danger_radius, color: "#dc2626", fillOpacity: 0.08, weight: 1.5 }).addTo(map);
+        L.circle(pos, { radius: b.warning_radius, color: "#d97706", fillOpacity: 0.14, weight: 1.5 }).addTo(map);
+        L.marker(pos).bindPopup(`<strong>${b.base_name}</strong><br>Warn: ${b.warning_radius}m · Danger: ${b.danger_radius}m`).addTo(map);
+    });
+
+    if (bounds.length > 1) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+    }
+});
+</script>
+{% endblock %}

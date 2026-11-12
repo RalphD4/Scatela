@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Monitored Children &mdash; Scatela{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Monitored Children</h1>
+        <p class="subtitle">All children associated with your account are monitored against all of your bases.</p>
+    </div>
+    <div class="actions-row">
+        <a href="{{ url_for('guardian_web.add_child') }}" class="btn">+ Add Child</a>
+        <a href="{{ url_for('guardian_web.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Latest Coordinates</th>
+                    <th>Last Updated</th>
+                    <th>Status</th>
+                    <th>Per-Base Breakdown</th>
+                    <th>Logs</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for child in dashboard.children %}
+                <tr>
+                    <td><strong>{{ child.username }}</strong></td>
+                    <td>{{ child.email }}</td>
+                    <td>{{ child.phone_number }}</td>
+                    <td class="mono">
+                        {% if child.latitude is not none and child.longitude is not none %}
+                            {{ "%.5f"|format(child.latitude) }}, {{ "%.5f"|format(child.longitude) }}
+                        {% else %}
+                            Not reported
+                        {% endif %}
+                    </td>
+                    <td>{{ child.location_updated_at or "Never" }}</td>
+                    <td><span class="badge badge-{{ child.monitoring_status }}">{{ child.status_label }}</span></td>
+                    <td>
+                        {% for b in child.per_base %}
+                            <div>
+                                {{ b.base_name }}: <strong>{{ "%.0f"|format(b.distance_meters) }}m</strong>
+                                <span class="badge badge-{{ b.status }}">{{ b.status }}</span>
+                            </div>
+                        {% else %}
+                            <span class="muted">&mdash;</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('guardian_web.child_detail', child_id=child.user_id) }}" class="btn btn-secondary btn-sm">View Details</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="muted">No children linked to your account yet. <a href="{{ url_for('guardian_web.add_child') }}">Add a child</a>.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Guardian Dashboard &mdash; Scatela{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Guardian Dashboard</h1>
+        <p class="subtitle">Real-time locations, safety base thresholds, and active child alerts.</p>
+    </div>
+    <div class="actions-row">
+        <a href="{{ url_for('guardian_web.add_child') }}" class="btn">+ Add Child</a>
+        <a href="{{ url_for('guardian_web.add_base') }}" class="btn">+ Add Base Location</a>
+        <a href="{{ url_for('guardian_web.children') }}" class="btn btn-secondary">View Children</a>
+        <a href="{{ url_for('guardian_web.bases') }}" class="btn btn-secondary">View Base Locations</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="card">
+        <div class="stat-label">Your Current Location</div>
+        <div id="guardian-coords" class="stat-value mono" style="font-size: 1.05rem;">
+            {% if dashboard.guardian.latitude is not none and dashboard.guardian.longitude is not none %}
+                {{ "%.5f"|format(dashboard.guardian.latitude) }}, {{ "%.5f"|format(dashboard.guardian.longitude) }}
+            {% else %}
+                Awaiting location
+            {% endif %}
+        </div>
+        <div class="stat-meta">
+            <span id="guardian-fresh-badge" class="badge {% if dashboard.guardian.location_fresh %}badge-normal{% elif dashboard.guardian.location_updated_at %}badge-stale{% else %}badge-no_location{% endif %}">
+                {% if dashboard.guardian.location_fresh %}Current{% elif dashboard.guardian.location_updated_at %}Stale{% else %}Pending{% endif %}
+            </span>
+            <span id="guardian-updated-at">
+                {% if dashboard.guardian.location_updated_at %}Updated {{ dashboard.guardian.location_updated_at }}{% else %}No timestamp recorded yet{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="stat-label">Monitored Children</div>
+        <div id="children-count" class="stat-value">{{ dashboard.children|length }}</div>
+        <div class="stat-meta"><a href="{{ url_for('guardian_web.children') }}">Manage children &rarr;</a></div>
+    </div>
+
+    <div class="card">
+        <div class="stat-label">Safety Bases</div>
+        <div id="bases-count" class="stat-value">{{ dashboard.bases|length }}</div>
+        <div class="stat-meta"><a href="{{ url_for('guardian_web.bases') }}">Manage bases &rarr;</a></div>
+    </div>
+
+    <div class="card">
+        <div class="stat-label">Active Alerts</div>
+        <div id="active-alerts-count" class="stat-value">{{ dashboard.alerts|length }}</div>
+        <div class="stat-meta">Evaluated against all bases</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Active Alerts</h2>
+    <div id="alerts-container">
+        {% if dashboard.alerts %}
+            {% for alert in dashboard.alerts %}
+                <div class="alert-item {{ alert.alert_type }}">
+                    <div>
+                        <span class="badge badge-{{ alert.alert_type }}">{{ alert.alert_type }}</span>
+                        <strong>{{ alert.child_username }}</strong> &mdash; Base: <strong>{{ alert.base_name }}</strong>
+                        <div class="muted">Distance: {{ "%.0f"|format(alert.distance_meters) }}m &middot; {{ alert.created_at }}</div>
+                        <div>{{ alert.message }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="muted">No active alerts.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Live Safety Map</h2>
+    <div id="dashboard-map" class="map-container"></div>
+</div>
+
+<div class="card">
+    <div class="page-header" style="margin-bottom: 0.75rem;">
+        <h2 style="margin: 0;">Children Monitoring Status</h2>
+        <a href="{{ url_for('guardian_web.add_child') }}" class="btn btn-secondary btn-sm">+ Add Child</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Child</th>
+                    <th>Latest Coordinates</th>
+                    <th>Last Updated</th>
+                    <th>Highest Status</th>
+                    <th>Base Distances</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="children-tbody">
+                {% for child in dashboard.children %}
+                <tr>
+                    <td><a href="{{ url_for('guardian_web.child_detail', child_id=child.user_id) }}"><strong>{{ child.username }}</strong></a></td>
+                    <td class="mono">
+                        {% if child.latitude is not none and child.longitude is not none %}
+                            {{ "%.5f"|format(child.latitude) }}, {{ "%.5f"|format(child.longitude) }}
+                        {% else %}
+                            Not reported
+                        {% endif %}
+                    </td>
+                    <td>{{ child.location_updated_at or "Never" }}</td>
+                    <td><span class="badge badge-{{ child.monitoring_status }}">{{ child.status_label }}</span></td>
+                    <td>
+                        {% for b in child.per_base %}
+                            <div>{{ b.base_name }}: {{ "%.0f"|format(b.distance_meters) }}m (<span class="badge badge-{{ b.status }}">{{ b.status }}</span>)</div>
+                        {% else %}
+                            <span class="muted">&mdash;</span>
+                        {% endfor %}
+                    </td>
+                    <td><a href="{{ url_for('guardian_web.child_detail', child_id=child.user_id) }}" class="btn btn-secondary btn-sm">History</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="muted">No children added yet. <a href="{{ url_for('guardian_web.add_child') }}">Add your first child</a>.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="page-header" style="margin-bottom: 0.75rem;">
+        <h2 style="margin: 0;">Configured Base Locations</h2>
+        <a href="{{ url_for('guardian_web.add_base') }}" class="btn btn-secondary btn-sm">+ Add Base Location</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Base Name</th>
+                    <th>Coordinates</th>
+                    <th>Warning Radius</th>
+                    <th>Danger Radius</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for base in dashboard.bases %}
+                <tr>
+                    <td><strong>{{ base.base_name }}</strong></td>
+                    <td class="mono">{{ "%.5f"|format(base.latitude) }}, {{ "%.5f"|format(base.longitude) }}</td>
+                    <td>{{ base.warning_radius }} m</td>
+                    <td>{{ base.danger_radius }} m</td>
+                    <td>
+                        <a href="{{ url_for('guardian_web.edit_base', base_id=base.base_id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="muted">No base locations configured yet. <a href="{{ url_for('guardian_web.add_base') }}">Add a base location</a>.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script id="initial-dashboard-data" type="application/json">{{ dashboard|tojson }}</script>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

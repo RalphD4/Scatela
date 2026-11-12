@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Guardian Registration &mdash; Scatela{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+    <h1>Create Guardian Account</h1>
+    <p class="subtitle" style="margin-bottom: 1.25rem;">
+        Register as a guardian. Child accounts are created by guardians after logging in.
+    </p>
+
+    <form method="POST" action="{{ url_for('auth_web.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" maxlength="20" required autocomplete="username" value="{{ form_data.get('username', '') }}">
+            <div class="form-hint">3–20 characters (letters, numbers, ., -, _).</div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input id="email" name="email" type="email" required autocomplete="email" value="{{ form_data.get('email', '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Phone Number</label>
+            <input id="phone_number" name="phone_number" type="tel" required autocomplete="tel" value="{{ form_data.get('phone_number', '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" minlength="6" required autocomplete="new-password">
+            <div class="form-hint">Minimum 6 characters.</div>
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input id="confirm_password" name="confirm_password" type="password" minlength="6" required autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%;">Register Guardian</button>
+    </form>
+
+    <p class="muted" style="margin-top: 1rem; text-align: center;">
+        Already registered? <a href="{{ url_for('auth_web.login') }}">Sign in</a>
+    </p>
+</div>
+{% endblock %}

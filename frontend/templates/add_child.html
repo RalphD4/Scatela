@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Add Child &mdash; Scatela{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Add Child Account</h1>
+        <p class="subtitle">Create a child login and automatically link them to your safety bases.</p>
+    </div>
+    <a href="{{ url_for('guardian_web.children') }}" class="btn btn-secondary">Back to Children</a>
+</div>
+
+<div class="card" style="max-width: 560px;">
+    <form method="POST" action="{{ url_for('guardian_web.add_child') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label for="username">Child Username</label>
+            <input id="username" name="username" type="text" maxlength="20" required value="{{ form_data.get('username', '') }}">
+            <div class="form-hint">3–20 characters (letters, numbers, ., -, _).</div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Child Email</label>
+            <input id="email" name="email" type="email" required value="{{ form_data.get('email', '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Child Phone Number</label>
+            <input id="phone_number" name="phone_number" type="tel" required value="{{ form_data.get('phone_number', '') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Child Password</label>
+            <input id="password" name="password" type="password" minlength="6" required>
+            <div class="form-hint">Minimum 6 characters.</div>
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input id="confirm_password" name="confirm_password" type="password" minlength="6" required>
+        </div>
+
+        <div class="actions-row">
+            <button type="submit" class="btn">Create Child Account</button>
+            <a href="{{ url_for('guardian_web.dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

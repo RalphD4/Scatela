@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit{% else %}Add{% endif %} Base Location &mdash; Scatela{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{% if mode == 'edit' %}Edit Base Location{% else %}Add Base Location{% endif %}</h1>
+        <p class="subtitle">Search for an address or click/drag the marker on the map to choose coordinates and safety radii.</p>
+    </div>
+    <a href="{{ url_for('guardian_web.bases') }}" class="btn btn-secondary">Back to Base Locations</a>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h2>Base Configuration</h2>
+        <form id="base-location-form" method="POST" action="{% if mode == 'edit' %}{{ url_for('guardian_web.edit_base', base_id=base.base_id) }}{% else %}{{ url_for('guardian_web.add_base') }}{% endif %}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="form-group">
+                <label for="base_name">Base Name</label>
+                <input id="base_name" name="base_name" type="text" maxlength="100" required placeholder="e.g. Home, Elementary School" value="{{ form_data.get('base_name', '') }}">
+            </div>
+
+            <div class="form-group">
+                <label for="address-search-input">Address or Place Search</label>
+                <div class="search-row">
+                    <input id="address-search-input" type="search" placeholder="Search street, school, park, or city">
+                    <button id="address-search-btn" type="button" class="btn btn-secondary">Search</button>
+                </div>
+                <div id="address-search-status" class="form-hint">Powered by OpenStreetMap Nominatim. Press Search or Enter.</div>
+                <ul id="address-search-results" class="search-results" hidden></ul>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="latitude">Latitude</label>
+                    <input id="latitude" name="latitude" type="number" step="any" min="-90" max="90" required value="{{ form_data.get('latitude', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="longitude">Longitude</label>
+                    <input id="longitude" name="longitude" type="number" step="any" min="-180" max="180" required value="{{ form_data.get('longitude', '') }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="warning_radius">Warning Radius (meters)</label>
+                    <input id="warning_radius" name="warning_radius" type="number" min="1" step="1" required value="{{ form_data.get('warning_radius', 200) }}">
+                </div>
+                <div class="form-group">
+                    <label for="danger_radius">Danger Radius (meters)</label>
+                    <input id="danger_radius" name="danger_radius" type="number" min="2" step="1" required value="{{ form_data.get('danger_radius', 500) }}">
+                </div>
+            </div>
+            <div class="form-hint" style="margin-bottom: 1rem;">
+                Normal: within warning radius. Warning: between warning and danger radii. Danger: outside danger radius. Danger radius must exceed warning radius.
+            </div>
+
+            <div class="actions-row">
+                <button type="submit" class="btn">{% if mode == 'edit' %}Save Changes{% else %}Save Base Location{% endif %}</button>
+                <a href="{{ url_for('guardian_web.bases') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Interactive Location Picker</h2>
+        <p class="muted" style="margin-top: 0;">Click anywhere on the map or drag the blue pin to adjust coordinates.</p>
+        <div
+            id="base-picker-map"
+            class="map-container"
+            style="height: 440px;"
+            data-default-lat="{{ default_lat }}"
+            data-default-lon="{{ default_lon }}"
+        ></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/base_map.js') }}"></script>
+{% endblock %}

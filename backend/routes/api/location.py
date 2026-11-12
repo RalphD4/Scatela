@@ -1,41 +1,27 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, g, jsonify, request
 
-#route for location
-#this should receive your current location and return it
-location_api = Blueprint("location_api", __name__, url_prefix="/api") 
+from backend.services.auth_service import login_required
+from backend.services.exceptions import ValidationError
+from backend.services.location_service import get_user_location, update_user_location
 
-
+location_api = Blueprint("location_api", __name__, url_prefix="/api")
 
 
 @location_api.route("/location", methods=["POST", "GET"])
-def get_location():
-
+@login_required
+def location_endpoint():
     if request.method == "POST":
-        #get the data
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Request body empty"}), 400
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise ValidationError("Request body must be valid JSON.")
 
-        #get longitude and latitude
-        latitude = data.get("latitude")
-        longitude = data.get("longitude")
+        result = update_user_location(
+            user_id=g.current_user.user_id,
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            client_timestamp=data.get("timestamp"),
+        )
+        return jsonify(result), 200
 
-        #data check
-        if latitude is None or longitude is None:
-            return jsonify({"error": "latidude and longitude are required"}), 400
-        # Validate coordinate ranges
-        try:
-            latitude = float(latitude)
-            longitude = float(longitude)
-        except (ValueError, TypeError):
-            return jsonify({
-                "error": "Latitude and longitude must be numbers"
-            }), 400
-
-        #return it
-        return jsonify({
-            "latitude": latitude,
-            "longitude": longitude
-        })
-    else:
-        return render_template("index.html")
+    current_location = get_user_location(g.current_user.user_id)
+    return jsonify(current_location), 200

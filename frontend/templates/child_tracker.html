@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Location Tracker &mdash; Scatela{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Child Safety Tracker</h1>
+        <p class="subtitle">Automatic location updates are sent every 10 seconds while you are signed in.</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h2>Your Reporting Status</h2>
+        <p>Account: <strong>{{ current_user.username }}</strong></p>
+        <p>
+            Last Known Coordinates:
+            <span id="child-coords" class="mono">
+                {% if child.latitude is not none and child.longitude is not none %}
+                    {{ "%.5f"|format(child.latitude) }}, {{ "%.5f"|format(child.longitude) }}
+                {% else %}
+                    Waiting for GPS fix...
+                {% endif %}
+            </span>
+        </p>
+        <p>
+            Last Updated:
+            <span id="child-updated-at">{{ child.location_updated_at or "Never" }}</span>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Monitoring Guardians</h2>
+        {% if guardian_names %}
+            <ul>
+                {% for gname in guardian_names %}
+                    <li><strong>{{ gname }}</strong></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="muted">No guardians currently associated.</p>
+        {% endif %}
+        <p class="muted">Tracking pauses automatically when you log out.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+window.addEventListener("scatela:location-updated", (event) => {
+    const data = event.detail || {};
+    const coordsEl = document.getElementById("child-coords");
+    const timeEl = document.getElementById("child-updated-at");
+    if (coordsEl && data.latitude != null && data.longitude != null) {
+        coordsEl.textContent = `${Number(data.latitude).toFixed(5)}, ${Number(data.longitude).toFixed(5)}`;
+    }
+    if (timeEl && data.location_updated_at) {
+        timeEl.textContent = window.ScatelaTracker
+            ? window.ScatelaTracker.formatLocalTime(data.location_updated_at)
+            : data.location_updated_at;
+    }
+});
+</script>
+{% endblock %}
